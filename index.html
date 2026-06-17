@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 FIFA World Cup 竞彩看板</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Teko:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        :root{
+            --gold:#D4AF37;--gold-light:#F5D76E;--gold-dark:#B8860B;
+            --win:#2ecc71;--loss:#e74c3c;
+            --card:rgba(0,0,0,0.45);--card-border:rgba(212,175,55,0.15);
+            --text:#f5f5f5;--text-sec:rgba(255,255,255,0.7);--text-dim:rgba(255,255,255,0.4);
+        }
+        *{margin:0;padding:0;box-sizing:border-box}
+
+        /* CINEMATIC BACKGROUND */
+        body{
+            font-family:'Noto Sans SC',sans-serif;
+            min-height:100vh;color:var(--text);overflow-x:hidden;
+            background:#0a0a0a;
+            position:relative;
+        }
+
+        /* Stadium spotlight effect */
+        body::before{
+            content:'';position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;
+            background:
+                /* Center spotlight */
+                radial-gradient(ellipse 100% 80% at 50% 0%, rgba(212,175,55,0.15) 0%, transparent 50%),
+                /* Side stadium lights */
+                radial-gradient(ellipse 40% 60% at 0% 30%, rgba(255,255,255,0.08) 0%, transparent 40%),
+                radial-gradient(ellipse 40% 60% at 100% 30%, rgba(255,255,255,0.08) 0%, transparent 40%),
+                /* Bottom field glow */
+                radial-gradient(ellipse 120% 50% at 50% 100%, rgba(34,139,34,0.12) 0%, transparent 60%),
+                /* Dark vignette */
+                radial-gradient(ellipse 80% 80% at 50% 50%, transparent 40%, rgba(0,0,0,0.8) 100%);
+            pointer-events:none;
+        }
+
+        /* Noise texture overlay */
+        body::after{
+            content:'';position:fixed;top:0;left:0;right:0;bottom:0;z-index:1;
+            background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity:0.03;
+            pointer-events:none;
+        }
+
+        /* Animated light beams */
+        .light-beams{
+            position:fixed;top:0;left:0;right:0;bottom:0;z-index:0;
+            overflow:hidden;pointer-events:none;
+        }
+        .beam{
+            position:absolute;top:-20%;width:2px;height:150%;
+            background:linear-gradient(180deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+            transform-origin:top center;
+            animation:sweep 8s ease-in-out infinite;
+        }
+        .beam:nth-child(1){left:20%;animation-delay:0s;transform:rotate(-15deg)}
+        .beam:nth-child(2){left:35%;animation-delay:2s;transform:rotate(-8deg)}
+        .beam:nth-child(3){left:50%;animation-delay:4s;transform:rotate(0deg);width:3px}
+        .beam:nth-child(4){left:65%;animation-delay:1s;transform:rotate(8deg)}
+        .beam:nth-child(5){left:80%;animation-delay:3s;transform:rotate(15deg)}
+        @keyframes sweep{
+            0%,100%{opacity:0.3;transform:rotate(var(--r,0deg)) scaleY(1)}
+            50%{opacity:0.6;transform:rotate(calc(var(--r,0deg) + 3deg)) scaleY(1.1)}
+        }
+
+        .container{max-width:980px;margin:0 auto;padding:0 16px;position:relative;z-index:2}
+
+        /* HEADER */
+        header{text-align:center;padding:40px 16px 20px;position:relative}
+        .host-nations{display:flex;justify-content:center;align-items:center;gap:24px;margin-bottom:16px}
+        .host-flag{font-size:2.6rem;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.5));transition:all .3s;cursor:default}
+        .host-flag:hover{transform:scale(1.15) translateY(-3px);filter:drop-shadow(0 6px 20px rgba(212,175,55,0.4))}
+        .host-divider{width:1px;height:32px;background:linear-gradient(180deg,transparent,var(--gold),transparent)}
+        .wc-title{font-family:'Teko',sans-serif;font-size:clamp(2.2rem,7vw,3.8rem);font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+            background:linear-gradient(135deg,var(--gold-light) 0%,var(--gold) 50%,var(--gold-dark) 100%);
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+            text-shadow:0 0 60px rgba(212,175,55,0.3);position:relative}
+        .wc-title::after{content:'2026';position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);font-size:0.9rem;letter-spacing:0.3em;
+            -webkit-text-fill-color:rgba(212,175,55,0.3);font-family:'Oswald',sans-serif}
+        .wc-subtitle{font-family:'Oswald',sans-serif;font-size:0.85rem;letter-spacing:0.4em;color:var(--text-dim);text-transform:uppercase;margin-top:12px}
+        .trophy-icon{font-size:2.4rem;margin-top:16px;animation:float 5s ease-in-out infinite;filter:drop-shadow(0 0 20px rgba(212,175,55,0.5))}
+        @keyframes float{0%,100%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-8px) rotate(3deg)}}
+
+        .sync-line{text-align:center;margin:12px 0 8px;font-size:0.75rem;color:var(--text-dim);letter-spacing:0.08em;font-family:'Oswald',sans-serif}
+        .sync-line .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold);margin-right:8px;vertical-align:middle;animation:pulse 2s ease-in-out infinite;box-shadow:0 0 10px var(--gold)}
+        @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+
+        /* STATS */
+        .stats-board{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:24px 0}
+        .stat-card{
+            background:var(--card);backdrop-filter:blur(20px);border-radius:16px;padding:20px 12px;text-align:center;
+            border:1px solid var(--card-border);position:relative;overflow:hidden;
+            box-shadow:0 8px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.05);
+            transition:all .3s ease;
+        }
+        .stat-card:hover{transform:translateY(-4px);border-color:rgba(212,175,55,0.3);box-shadow:0 12px 40px rgba(0,0,0,0.5),0 0 30px rgba(212,175,55,0.1)}
+        .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0.6}
+        .stat-card:nth-child(2)::before{background:linear-gradient(90deg,transparent,var(--win),transparent)}
+        .stat-card:nth-child(3)::before{background:linear-gradient(90deg,transparent,var(--loss),transparent)}
+        .stat-card:nth-child(4)::before{background:linear-gradient(90deg,transparent,#3498db,transparent)}
+        .stat-label{font-size:0.7rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:8px;font-family:'Oswald',sans-serif}
+        .stat-value{font-family:'Teko',sans-serif;font-size:2rem;font-weight:600;line-height:1;color:var(--text)}
+        .stat-value.pos{color:var(--win);text-shadow:0 0 20px rgba(46,204,113,0.3)}
+        .stat-value.neg{color:var(--loss);text-shadow:0 0 20px rgba(231,76,60,0.3)}
+
+        /* SECTIONS */
+        .section{
+            background:var(--card);backdrop-filter:blur(20px);border-radius:20px;padding:24px;margin:20px 0;
+            border:1px solid var(--card-border);box-shadow:0 8px 32px rgba(0,0,0,0.4);
+            position:relative;overflow:hidden;
+        }
+        .section::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(212,175,55,0.3),transparent)}
+        .section-title{font-family:'Oswald',sans-serif;font-size:1rem;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
+            color:var(--gold);margin-bottom:20px;display:flex;align-items:center;gap:10px;
+            text-shadow:0 0 20px rgba(212,175,55,0.3)}
+        .section-title .icon{font-size:1.2rem}
+
+        /* CHART */
+        .chart-wrap{position:relative;width:100%;height:320px;padding:10px 0}
+        .chart-wrap canvas{width:100%!important;height:100%!important}
+
+        /* LEADERBOARD */
+        .lb-list{display:flex;flex-direction:column;gap:8px}
+        .lb-item{display:flex;align-items:center;padding:14px 16px;background:rgba(255,255,255,0.03);border-radius:12px;border-left:3px solid transparent;
+            transition:all .2s ease;position:relative}
+        .lb-item:hover{background:rgba(255,255,255,0.06);transform:translateX(4px)}
+        .lb-item.r1{border-left-color:var(--gold);background:linear-gradient(90deg,rgba(212,175,55,0.08),transparent)}
+        .lb-item.r2{border-left-color:#C0C0C0;background:linear-gradient(90deg,rgba(192,192,192,0.08),transparent)}
+        .lb-item.r3{border-left-color:#CD7F32;background:linear-gradient(90deg,rgba(205,127,50,0.08),transparent)}
+        .lb-rank{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Teko',sans-serif;font-size:1.3rem;font-weight:600;margin-right:14px;flex-shrink:0;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+        .lb-rank.gold{background:linear-gradient(135deg,var(--gold-light),var(--gold));color:#1a1a1a}
+        .lb-rank.silver{background:linear-gradient(135deg,#E8E8E8,#A0A0A0);color:#1a1a1a}
+        .lb-rank.bronze{background:linear-gradient(135deg,#E8A84C,#CD7F32);color:#fff}
+        .lb-rank.normal{background:rgba(255,255,255,0.1);color:var(--text-sec);border:1px solid rgba(255,255,255,0.1)}
+        .lb-info{flex:1;min-width:0}
+        .lb-name{font-weight:700;font-size:1rem;letter-spacing:0.02em}
+        .lb-meta{font-size:0.75rem;color:var(--text-dim);margin-top:3px}
+        .lb-profit{font-family:'Teko',sans-serif;font-size:1.6rem;font-weight:600;text-align:right}
+        .lb-profit.pos{color:var(--win);text-shadow:0 0 15px rgba(46,204,113,0.3)}
+        .lb-profit.neg{color:var(--loss);text-shadow:0 0 15px rgba(231,76,60,0.3)}
+
+        /* PLAYER CARDS */
+        .player-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+        .player-card{
+            background:rgba(0,0,0,0.35);border-radius:16px;padding:20px;border:1px solid rgba(255,255,255,0.08);
+            box-shadow:0 4px 20px rgba(0,0,0,0.3);transition:all .3s ease;position:relative;overflow:hidden;
+        }
+        .player-card:hover{border-color:rgba(212,175,55,0.2);box-shadow:0 8px 30px rgba(0,0,0,0.4),0 0 20px rgba(212,175,55,0.05)}
+        .player-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0.5}
+        .pc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.08)}
+        .pc-name{font-weight:700;font-size:1.1rem}
+        .pc-pnl{font-family:'Teko',sans-serif;font-size:1.8rem;font-weight:600}
+        .pc-pnl.pos{color:var(--win)}.pc-pnl.neg{color:var(--loss)}
+        .pc-stats{display:flex;gap:10px;font-size:0.75rem;color:var(--text-dim);margin-bottom:14px;flex-wrap:wrap}
+        .pc-stats span{padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:20px;border:1px solid rgba(255,255,255,0.05)}
+        .pc-bet{padding:12px;background:rgba(0,0,0,0.25);border-radius:12px;margin-bottom:10px;border-left:3px solid transparent;transition:all .2s}
+        .pc-bet:hover{background:rgba(0,0,0,0.35)}
+        .pc-bet.win{border-left-color:var(--win)}
+        .pc-bet.loss{border-left-color:var(--loss)}
+        .pc-bet-date{font-size:0.72rem;color:var(--text-dim);margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .pc-bet-teams{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+        .team-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:0.78rem;font-weight:600;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.3)}
+        .team-flag{font-size:1rem}.vs-text{font-size:0.7rem;color:var(--text-dim)}
+        .pc-bet-detail{display:flex;justify-content:space-between;align-items:center;font-size:0.8rem;color:var(--text-sec);flex-wrap:wrap;gap:6px;margin-bottom:4px}
+        .pc-bet-prediction{color:var(--text-dim);font-style:italic;font-size:0.75rem}
+        .pc-bet-result{font-weight:600;font-size:0.85rem}
+        .pc-bet-result.win{color:var(--win)}.pc-bet-result.loss{color:var(--loss)}
+        .pc-bet-financials{display:flex;gap:14px;font-size:0.78rem;margin-top:6px;color:var(--text-sec)}
+        .type-tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.68rem;font-weight:600;background:rgba(212,175,55,0.15);color:var(--gold);border:1px solid rgba(212,175,55,0.2)}
+
+        /* AI ANALYST SECTION */
+        .ai-analyst-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+        .analyst-card{
+            background:linear-gradient(135deg,rgba(0,0,0,0.5) 0%,rgba(30,30,30,0.4) 100%);
+            border-radius:16px;padding:20px;border:1px solid rgba(212,175,55,0.15);
+            box-shadow:0 8px 32px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.05);
+            position:relative;overflow:hidden;transition:all .3s ease;
+        }
+        .analyst-card:hover{transform:translateY(-3px);border-color:rgba(212,175,55,0.3);box-shadow:0 12px 40px rgba(0,0,0,0.5),0 0 30px rgba(212,175,55,0.08)}
+        .analyst-card::before{
+            content:'';position:absolute;top:0;left:0;right:0;height:3px;
+            background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0.6;
+        }
+        .analyst-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.08)}
+        .analyst-avatar{
+            width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--gold) 0%,var(--gold-dark) 100%);
+            display:flex;align-items:center;justify-content:center;font-size:1.6rem;box-shadow:0 4px 15px rgba(212,175,55,0.3);
+        }
+        .analyst-info{flex:1}
+        .analyst-name{font-weight:700;font-size:1.1rem;color:var(--gold-light)}
+        .analyst-tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.65rem;font-weight:600;margin-top:4px}
+        .analyst-tag.bull{background:rgba(46,204,113,0.15);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)}
+        .analyst-tag.bear{background:rgba(231,76,60,0.15);color:#e74c3c;border:1px solid rgba(231,76,60,0.3)}
+        .analyst-tag.gamble{background:rgba(155,89,182,0.15);color:#9b59b6;border:1px solid rgba(155,89,182,0.3)}
+        .analyst-tag.hedge{background:rgba(52,152,219,0.15);color:#3498db;border:1px solid rgba(52,152,219,0.3)}
+        .analyst-stats{display:flex;gap:8px;margin-bottom:14px;font-size:0.75rem;color:var(--text-dim)}
+        .analyst-stats span{padding:4px 10px;background:rgba(255,255,255,0.05);border-radius:20px;border:1px solid rgba(255,255,255,0.05)}
+        .analyst-comment{font-size:0.85rem;line-height:1.7;color:var(--text-sec);font-style:italic}
+        .analyst-comment p{margin-bottom:8px;padding-left:16px;position:relative}
+        .analyst-comment p::before{content:'💡';position:absolute;left:0;opacity:0.7}
+        .analyst-comment p:nth-child(2)::before{content:'📊'}
+        .analyst-comment p:nth-child(3)::before{content:'🎯'}
+        .analyst-comment p:nth-child(4)::before{content:'⚠️'}
+        .ai-badge{position:absolute;top:12px;right:12px;padding:4px 10px;border-radius:20px;font-size:0.65rem;font-weight:700;letter-spacing:0.05em;background:rgba(212,175,55,0.1);color:var(--gold);border:1px solid rgba(212,175,55,0.2)}
+
+        @media(max-width:640px){
+            .stats-board{grid-template-columns:repeat(2,1fr);gap:10px}
+            .player-grid{grid-template-columns:1fr}
+            .ai-analyst-grid{grid-template-columns:1fr}
+            .host-flag{font-size:2rem}
+            .chart-wrap{height:260px}
+            .beam{display:none}
+        }
+        ::-webkit-scrollbar{width:6px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:rgba(212,175,55,0.3);border-radius:3px}
+    </style>
+</head>
+<body>
+    <div class="light-beams">
+        <div class="beam" style="--r:-15deg"></div>
+        <div class="beam" style="--r:-8deg"></div>
+        <div class="beam" style="--r:0deg"></div>
+        <div class="beam" style="--r:8deg"></div>
+        <div class="beam" style="--r:15deg"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="host-nations">
+                <span class="host-flag">🇺🇸</span>
+                <span class="host-divider"></span>
+                <span class="host-flag">🇨🇦</span>
+                <span class="host-divider"></span>
+                <span class="host-flag">🇲🇽</span>
+            </div>
+            <div class="wc-title">FIFA World Cup</div>
+            <div class="wc-subtitle">美加墨世界杯 · 竞彩看板</div>
+            <div class="trophy-icon">🏆</div>
+        </header>
+
+        <div class="sync-line"><span class="dot"></span>LIVE DATA · 最后更新: <span id="last-sync"></span></div>
+
+        <div class="stats-board">
+            <div class="stat-card"><div class="stat-label">总投入</div><div class="stat-value" id="s-invest">¥0</div></div>
+            <div class="stat-card"><div class="stat-label">总盈亏</div><div class="stat-value" id="s-pnl">¥0</div></div>
+            <div class="stat-card"><div class="stat-label">总票数</div><div class="stat-value" id="s-cnt">0</div></div>
+            <div class="stat-card"><div class="stat-label">正确率</div><div class="stat-value" id="s-rate">0%</div></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title"><span class="icon">📈</span>每日累计盈亏走势</div>
+            <div class="chart-wrap"><canvas id="pnl-chart"></canvas></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title"><span class="icon">🏆</span>玩家排行榜</div>
+            <div class="lb-list" id="leaderboard"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title"><span class="icon">👤</span>玩家详情 · 每张票</div>
+            <div class="player-grid" id="player-detail"></div>
+        </div>
+
+        <div class="section">
+            <div class="section-title"><span class="icon">🤖</span>AI 博彩分析师 · 实时策略诊断</div>
+            <div class="ai-analyst-grid" id="ai-analyst"></div>
+        </div>
+    </div>
+
+    <script>
+    const C={法国:{f:'🇫🇷',c:'#002395'},塞内加尔:{f:'🇸🇳',c:'#00853F'},伊拉克:{f:'🇮🇶',c:'#CE1126'},挪威:{f:'🇳🇴',c:'#BA0C2F'},阿根廷:{f:'🇦🇷',c:'#75AADB'},阿尔及利亚:{f:'🇩🇿',c:'#006233'},美国:{f:'🇺🇸',c:'#B31942'},加拿大:{f:'🇨🇦',c:'#FF0000'},墨西哥:{f:'🇲🇽',c:'#006341'},巴西:{f:'🇧🇷',c:'#009739'},德国:{f:'🇩🇪',c:'#4A4A4A'},西班牙:{f:'🇪🇸',c:'#AA151B'},英格兰:{f:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',c:'#CF081F'},葡萄牙:{f:'🇵🇹',c:'#006600'},荷兰:{f:'🇳🇱',c:'#FF6600'},意大利:{f:'🇮🇹',c:'#008C45'},比利时:{f:'🇧🇪',c:'#ED2939'},克罗地亚:{f:'🇭🇷',c:'#0D5EAF'},乌拉圭:{f:'🇺🇾',c:'#5CBFE9'},哥伦比亚:{f:'🇨🇴',c:'#FCD116'},智利:{f:'🇨🇱',c:'#D52B1E'},日本:{f:'🇯🇵',c:'#BC002D'},韩国:{f:'🇰🇷',c:'#003478'},澳大利亚:{f:'🇦🇺',c:'#00008B'},摩洛哥:{f:'🇲🇦',c:'#C1272D'},加纳:{f:'🇬🇭',c:'#006B3F'},尼日利亚:{f:'🇳🇬',c:'#008751'},喀麦隆:{f:'🇨🇲',c:'#006633'},突尼斯:{f:'🇹🇳',c:'#E70013'},埃及:{f:'🇪🇬',c:'#C8102E'},沙特:{f:'🇸🇦',c:'#006C35'},伊朗:{f:'🇮🇷',c:'#239F40'},中国:{f:'🇨🇳',c:'#DE2910'},卡塔尔:{f:'🇶🇦',c:'#8A1538'},厄瓜多尔:{f:'🇪🇨',c:'#FFD100'},波兰:{f:'🇵🇱',c:'#DC143C'},瑞典:{f:'🇸🇪',c:'#006AA7'},瑞士:{f:'🇨🇭',c:'#FF0000'},丹麦:{f:'🇩🇰',c:'#C8102E'},塞尔维亚:{f:'🇷🇸',c:'#C6363C'},土耳其:{f:'🇹🇷',c:'#E30A17'},乌克兰:{f:'🇺🇦',c:'#005BBB'}};
+    function badge(n){const c=C[n];return c?`<span class="team-badge" style="background:${c.c}"><span class="team-flag">${c.f}</span>${n}</span>`:`<span class="team-badge" style="background:rgba(255,255,255,0.12)">${n}</span>`}
+    function parseTeams(t){return t.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{const p=l.split(/\s*(?:VS|vs|v\.?)\s*/i);return p.length>=2?{h:p[0].trim(),a:p.slice(1).join(' ').trim()}:null}).filter(Boolean)}
+    function renderTeams(t){const ms=parseTeams(t);if(!ms.length)return t.replace(/\n/g,'<br>');return ms.map(m=>`${badge(m.h)} <span class="vs-text">VS</span> ${badge(m.a)}`).join('<br>')}
+
+    // ===== UPDATED DATA FROM BASE =====
+    const DATA = [
+        // 6月15日数据
+        {date:'2026-06-15',name:'韦小宝',game:'0616之前场次',type:['胜平负','多场混合'],prediction:'N/A',result:'正确',invest:60,profit:43},
+        {date:'2026-06-15',name:'张少',game:'0616之前场次',type:['胜平负','多场混合'],prediction:'N/A',result:'错误',invest:110,profit:-110},
+        {date:'2026-06-15',name:'陈少',game:'0616之前场次',type:['胜平负','多场混合'],prediction:'N/A',result:'错误',invest:170,profit:-140},
+        // 6月16日数据
+        {date:'2026-06-16',name:'贾老师',game:'法国 VS 塞内加尔',type:['胜平负'],prediction:'平',result:'错误',invest:20,profit:-20},
+        {date:'2026-06-16',name:'贾老师',game:'法国 VS 塞内加尔',type:['半全场'],prediction:'半场平 全场胜',result:'正确',invest:20,profit:58},
+        {date:'2026-06-16',name:'贾老师',game:'法国 VS 塞内加尔\n阿根廷 VS 阿尔及利亚',type:['胜平负','多场混合'],prediction:'法国让1球平 + 阿根廷让1球平',result:'错误',invest:10,profit:-10},
+        {date:'2026-06-16',name:'韦小宝',game:'法国 VS 塞内加尔\n伊拉克 VS 挪威\n阿根廷 VS 阿尔及利亚',type:['比分','多场混合'],prediction:'法国 2:1 塞内加尔\n伊拉克 1:2 挪威\n阿根廷 1:0 阿尔及利亚',result:'错误',invest:60,profit:-60},
+        {date:'2026-06-16',name:'张少',game:'法国 VS 塞内加尔',type:['胜平负'],prediction:'平',result:'错误',invest:20,profit:-20},
+        {date:'2026-06-16',name:'张少',game:'法国 VS 塞内加尔',type:['半全场'],prediction:'半场平 全场胜',result:'正确',invest:20,profit:58},
+        {date:'2026-06-16',name:'张少',game:'法国 VS 塞内加尔\n阿根廷 VS 阿尔及利亚',type:['胜平负','多场混合'],prediction:'法国让1球平\n阿根廷让1球平',result:'错误',invest:10,profit:-10},
+        {date:'2026-06-16',name:'陈少',game:'法国 VS 塞内加尔\n阿根廷 VS 阿尔及利亚',type:['胜平负','多场混合'],prediction:'法国让1球胜\n阿根廷胜',result:'正确',invest:100,profit:167},
+    ];
+
+    const PLAYER_COLORS = ['#D4AF37','#3498db','#e74c3c','#2ecc71','#9b59b6','#e67e22'];
+    const bets = DATA;
+    document.getElementById('last-sync').textContent = new Date().toLocaleString('zh-CN');
+
+    // ===== STATS =====
+    (function(){
+        const inv=bets.reduce((s,b)=>s+b.invest,0);
+        const pnl=bets.reduce((s,b)=>s+b.profit,0);
+        const wins=bets.filter(b=>b.result==='正确').length;
+        const rate=bets.length?(wins/bets.length*100).toFixed(1):0;
+        document.getElementById('s-invest').textContent=`¥${inv.toLocaleString()}`;
+        const el=document.getElementById('s-pnl');
+        el.textContent=`${pnl>=0?'+':''}¥${pnl.toLocaleString()}`;
+        el.className='stat-value '+(pnl>=0?'pos':'neg');
+        document.getElementById('s-cnt').textContent=`${bets.length}张`;
+        document.getElementById('s-rate').textContent=`${rate}%`;
+    })();
+
+    // ===== CHART WITH CINEMATIC STYLE =====
+    (function(){
+        const players=[...new Set(bets.map(b=>b.name))];
+        const dateMap={};
+        bets.forEach(b=>{if(!dateMap[b.date])dateMap[b.date]={};if(!dateMap[b.date][b.name])dateMap[b.date][b.name]=0;dateMap[b.date][b.name]+=b.profit});
+        const dates=Object.keys(dateMap).sort();
+        const labels=dates.map(d=>{const dt=new Date(d);return`${dt.getMonth()+1}/${dt.getDate()}`});
+        const cumPerPlayer={};
+        players.forEach(p=>{cumPerPlayer[p]=[];let cum=0;dates.forEach(d=>{cum+=(dateMap[d][p]||0);cumPerPlayer[p].push(cum)})});
+        const totalCum=[];let tc=0;dates.forEach(d=>{tc+=players.reduce((s,p)=>s+(dateMap[d][p]||0),0);totalCum.push(tc)});
+
+        const datasets=[
+            {label:'总计',data:totalCum,borderColor:'#D4AF37',backgroundColor:'rgba(212,175,55,0.08)',borderWidth:3,fill:true,pointRadius:5,pointBackgroundColor:'#D4AF37',pointBorderColor:'#fff',pointBorderWidth:2,tension:0.4},
+            ...players.map((p,i)=>({label:p,data:cumPerPlayer[p],borderColor:PLAYER_COLORS[i%PLAYER_COLORS.length],backgroundColor:'transparent',borderWidth:2,borderDash:[5,5],pointRadius:3,pointBackgroundColor:PLAYER_COLORS[i%PLAYER_COLORS.length],tension:0.3}))
+        ];
+
+        new Chart(document.getElementById('pnl-chart'),{
+            type:'line',
+            data:{labels,datasets},
+            options:{
+                responsive:true,maintainAspectRatio:false,
+                interaction:{intersect:false,mode:'index'},
+                plugins:{
+                    legend:{labels:{color:'rgba(255,255,255,0.7)',font:{size:12,family:'Noto Sans SC'},usePointStyle:true,padding:20}},
+                    tooltip:{backgroundColor:'rgba(10,10,10,0.95)',titleColor:'#D4AF37',bodyColor:'#f5f5f5',borderColor:'rgba(212,175,55,0.3)',borderWidth:1,cornerRadius:8,displayColors:true,callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y>=0?'+':''}¥${ctx.parsed.y}`}}
+                },
+                scales:{
+                    x:{ticks:{color:'rgba(255,255,255,0.5)',font:{size:11}},grid:{color:'rgba(255,255,255,0.03)'},border:{display:false}},
+                    y:{ticks:{color:'rgba(255,255,255,0.5)',font:{size:11},callback:v=>`¥${v}`},grid:{color:'rgba(255,255,255,0.03)'},border:{display:false}}
+                }
+            }
+        });
+    })();
+
+    // ===== LEADERBOARD =====
+    (function(){
+        const players={};
+        bets.forEach(b=>{if(!players[b.name])players[b.name]={pnl:0,inv:0,w:0,l:0,c:0};players[b.name].pnl+=b.profit;players[b.name].inv+=b.invest;players[b.name].c++;b.result==='正确'?players[b.name].w++:players[b.name].l++});
+        const sorted=Object.entries(players).sort((a,b)=>b[1].pnl-a[1].pnl);
+        document.getElementById('leaderboard').innerHTML=sorted.map(([n,s],i)=>{
+            const rc=i===0?'gold':i===1?'silver':i===2?'bronze':'normal';
+            const ic=i<3?`r${i+1}`:'';
+            const pc=s.pnl>=0?'pos':'neg';
+            const sign=s.pnl>=0?'+':'';
+            const roi=s.inv>0?((s.pnl/s.inv)*100).toFixed(1):0;
+            return`<div class="lb-item ${ic}"><div class="lb-rank ${rc}">${i+1}</div><div class="lb-info"><div class="lb-name">${n}</div><div class="lb-meta">${s.c}张票 · ${s.w}胜${s.l}负 · 投入¥${s.inv} · ROI ${roi}%</div></div><div class="lb-profit ${pc}">${sign}¥${s.pnl.toLocaleString()}</div></div>`;
+        }).join('');
+    })();
+
+    // ===== PLAYER DETAIL =====
+    (function(){
+        const playerBets={};
+        bets.forEach(b=>{if(!playerBets[b.name])playerBets[b.name]=[];playerBets[b.name].push(b)});
+        const el=document.getElementById('player-detail');
+        const players=Object.entries(playerBets).sort((a,b)=>{const pa=a[1].reduce((s,x)=>s+x.profit,0);const pb=b[1].reduce((s,x)=>s+x.profit,0);return pb-pa});
+        el.innerHTML=players.map(([name,bts])=>{
+            const pnl=bts.reduce((s,b)=>s+b.profit,0);
+            const inv=bts.reduce((s,b)=>s+b.invest,0);
+            const wins=bts.filter(b=>b.result==='正确').length;
+            const pc=pnl>=0?'pos':'neg';
+            const sign=pnl>=0?'+':'';
+            const roi=inv>0?((pnl/inv)*100).toFixed(1):0;
+            const betHtml=bts.map(b=>{
+                const rc=b.result==='正确'?'win':'loss';
+                const tags=(b.type||[]).map(t=>`<span class="type-tag">${t}</span>`).join(' ');
+                const dt=new Date(b.date);
+                const dateStr=`${dt.getMonth()+1}月${dt.getDate()}日`;
+                return`<div class="pc-bet ${rc}">
+                    <div class="pc-bet-date">${dateStr} ${tags}</div>
+                    <div class="pc-bet-teams">${renderTeams(b.game)}</div>
+                    <div class="pc-bet-detail">
+                        <span class="pc-bet-prediction">预测: ${b.prediction}</span>
+                        <span class="pc-bet-result ${rc}">${b.result==='正确'?'✓ 正确':'✗ 错误'}</span>
+                    </div>
+                    <div class="pc-bet-financials"><span>投入 ¥${b.invest}</span><span style="color:${b.profit>=0?'var(--win)':'var(--loss)'};font-weight:600">${b.profit>=0?'+':''}¥${b.profit}</span></div>
+                </div>`;
+            }).join('');
+            return`<div class="player-card">
+                <div class="pc-header"><div class="pc-name">${name}</div><div class="pc-pnl ${pc}">${sign}¥${pnl.toLocaleString()}</div></div>
+                <div class="pc-stats"><span>投入 ¥${inv}</span><span>${wins}胜${bts.length-wins}负</span><span>ROI ${roi}%</span><span>${bts.length}张票</span></div>
+                ${betHtml}
+            </div>`;
+        }).join('');
+    })();
+
+    // ===== AI ANALYST =====
+    (function(){
+        const analysis={
+            '贾老师':{
+                avatar:'👨‍🏫',tag:'hedge',tagText:'对冲型',
+                stats:['胜率33%','小额试水','稳健派'],
+                comment:[
+                    '典型的学院派打法，每单控制在20元以内，深谙「鸡蛋不放一个篮子」的道理。',
+                    '虽胜率不高但懂得用半全场赔率回血，-20+58-10的波动曲线堪称教科书级风险控制。',
+                    '建议：继续保持小额多频策略，但下次可以相信自己的直觉多押一点，毕竟老师的眼光不会差。'
+                ]
+            },
+            '韦小宝':{
+                avatar:'🎲',tag:'gamble',tagText:'梭哈型',
+                stats:['胜率50%','比分猎手','高风险偏好'],
+                comment:[
+                    '江湖人称「比分终结者」，三连串一的胆子不是谁都有，可惜法国2:1差了一点。',
+                    '从+43到-60的过山车告诉我们：比分玩法是暴富捷径，也是返贫快车。',
+                    '建议：继续保持娱乐心态，毕竟人生得意须尽欢，但建议下次串关数量≤2，给运气留条后路。'
+                ]
+            },
+            '张少':{
+                avatar:'⚡',tag:'bear',tagText:'逆境型',
+                stats:['胜率25%','执着追平','抄底被套'],
+                comment:[
+                    '目前战绩-82元暂居榜尾，但别慌，股市有句话叫「别人恐惧我贪婪」。',
+                    '执着于法国让球平，三张票有俩押同一逻辑，这是信仰，也是执念。',
+                    '建议：分散投资标的，世界杯不只有法国队。以及，下次选「胜」可能比「平」更开心。'
+                ]
+            },
+            '陈少':{
+                avatar:'🎯',tag:'bull',tagText:'精准型',
+                stats:['胜率50%','大单杀手','一锤定音'],
+                comment:[
+                    '真正的大佬都是沉默寡言的，平时不显山露水，关键时刻一张100元大单直接封神。',
+                    '167元盈利的秘诀：不玩虚的，看准了就下重注，ROI高达61.8%羡煞旁人。',
+                    '建议：继续保持「少而精」的策略，但记得请其他三位喝奶茶，毕竟你赚的是他们的钱。'
+                ]
+            }
+        };
+        const playerStats={};
+        bets.forEach(b=>{
+            if(!playerStats[b.name])playerStats[b.name]={pnl:0,inv:0,w:0,c:0};
+            playerStats[b.name].pnl+=b.profit;
+            playerStats[b.name].inv+=b.invest;
+            playerStats[b.name].c++;
+            if(b.result==='正确')playerStats[b.name].w++;
+        });
+        const sortedPlayers=Object.entries(playerStats).sort((a,b)=>b[1].pnl-a[1].pnl);
+        document.getElementById('ai-analyst').innerHTML=sortedPlayers.map(([name,stat])=>{
+            const a=analysis[name]||{avatar:'🎭',tag:'hedge',tagText:'未知型',stats:['分析中...'],comment:['数据积累中，暂无法给出投资建议。']};
+            const winRate=stat.c>0?(stat.w/stat.c*100).toFixed(0):0;
+            const roi=stat.inv>0?((stat.pnl/stat.inv)*100).toFixed(1):0;
+            return`<div class="analyst-card">
+                <span class="ai-badge">AI LIVE</span>
+                <div class="analyst-header">
+                    <div class="analyst-avatar">${a.avatar}</div>
+                    <div class="analyst-info">
+                        <div class="analyst-name">${name}</div>
+                        <span class="analyst-tag ${a.tag}">${a.tagText}</span>
+                    </div>
+                </div>
+                <div class="analyst-stats">
+                    <span>盈亏 ¥${stat.pnl}</span>
+                    <span>胜率 ${winRate}%</span>
+                    <span>ROI ${roi}%</span>
+                    <span>${stat.c}张票</span>
+                </div>
+                <div class="analyst-comment">
+                    ${a.comment.map(c=>`<p>${c}</p>`).join('')}
+                </div>
+            </div>`;
+        }).join('');
+    })();
+    </script>
+</body>
+</html>
